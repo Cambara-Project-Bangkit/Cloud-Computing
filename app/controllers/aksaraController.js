@@ -19,15 +19,15 @@ const Aksara = require("../models/aksara");
  *         description: Some server error
  */
 const createAksara = async (req, res) => {
-  const { name, description, urlImage, urlYoutube } = req.body;
+  const { name, urlImage } = req.body;
 
   // Make sure name and url are not falsy
-  if (!name || !description || !urlImage || !urlYoutube) {
+  if (!name || !urlImage) {
     return res.status(400).json({ message: "Invalid aksara data" });
   }
 
   try {
-    await Aksara.createAksara(name, description, urlImage, urlYoutube);
+    await Aksara.createAksara(name, urlImage);
     res.status(200).json({ 
       error: false,
       message: "Aksara created successfully" 

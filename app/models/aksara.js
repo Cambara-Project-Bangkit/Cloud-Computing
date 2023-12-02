@@ -2,24 +2,20 @@ const db = require("../config/firestore");
 const { v4: uuidv4 } = require("uuid");
 
 class Aksara {
-  constructor(id, name, description, urlImage, urlYoutube) {
+  constructor(id, name, urlImage) {
     this.id = id;
     this.name = name;
-    this.description = description;
     this.urlImage = urlImage;
-    this.urlYoutube = urlYoutube;
   }
 
-  static async createAksara(name, description, urlImage, urlYoutube) {
+  static async createAksara(name, urlImage) {
     const id = uuidv4();
-    if (!name || !description || !urlImage || !urlYoutube) {
+    if (!name || !urlImage) {
       throw new Error("Invalid aksara data");
     }
     await db.collection("aksaras").doc(id).set({
       name: name,
-      description: description,
       urlImage: urlImage,
-      urlYoutube: urlYoutube,
     });
   }
 
@@ -28,7 +24,7 @@ class Aksara {
     if (!doc.exists) {
       throw new Error("Aksara does not exist");
     }
-    return new Aksara(doc.id, doc.data().name, doc.data().description, doc.data().urlImage, doc.data().urlYoutube);
+    return new Aksara(doc.id, doc.data().name, doc.data().urlImage);
   }
 
   static async listAllAksara() {
@@ -36,7 +32,7 @@ class Aksara {
     if (doc.empty) {
       throw new Error("Aksara does not exist");
     }
-    return doc.docs.map(doc => new Aksara(doc.id, doc.data().name, doc.data().description, doc.data().urlImage, doc.data().urlYoutube));
+    return doc.docs.map(doc => new Aksara(doc.id, doc.data().name, doc.data().urlImage));
   }
 }
 

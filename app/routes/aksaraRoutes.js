@@ -21,17 +21,11 @@ const validateInputs = (req, res, next) => {
 *       properties:
 *         name:
 *           type: string
-*         description:
-*           type: string
 *         urlImage:
-*           type: string
-*         urlYoutube:
 *           type: string
 *       required:
 *         - name
-*         - description
 *         - urlImage
-*         - urlYoutube
 * /api/aksara:
 *   post:
 *     summary: Create a new Aksara
@@ -50,9 +44,7 @@ const validateInputs = (req, res, next) => {
 */
 router.post('/', [
   check('name').notEmpty(),
-  check('description').notEmpty(),
   check('urlImage').notEmpty(),
-  check('urlYoutube').notEmpty(),
   validateInputs
 ], createAksara);
 
