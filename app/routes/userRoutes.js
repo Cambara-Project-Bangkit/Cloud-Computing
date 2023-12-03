@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login } = require('../controllers/authController');
+const { register, login,refreshToken } = require('../controllers/authController');
 const { check, validationResult } = require('express-validator');
 
 // Middleware to validate inputs
@@ -61,7 +61,7 @@ router.post('/register', [
  *             properties:
  *               email:
  *                 type: string
- *                 example: "user@example.com"
+ *                 example: "adminaku@example.com"
  *               password:
  *                 type: string
  *                 example: "12345678"
@@ -76,5 +76,29 @@ router.post('/login', [
   check('password').isLength({ min: 5 }),
   validateInputs
 ], login);
+
+/**
+ * @swagger
+ * /api/auth/token:
+ *   post:
+ *     summary: Refresh user token
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *       400:
+ *         description: Error occurred
+ */
+router.post('/token', refreshToken);
 
 module.exports = router;
