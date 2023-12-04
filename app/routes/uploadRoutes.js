@@ -34,9 +34,6 @@ const validateInputs = (req, res, next) => {
  *       400:
  *         description: Error occurred
  */
-router.post('/', [
-    check('image').notEmpty(),
-    validateInputs
-], upload.single('image'), uploadImage);    
+router.post('/', upload.single('image'), uploadImage);    
 
 module.exports = router;
