@@ -47,6 +47,23 @@ class User {
     const user = users.docs[0];
     return new User(user.id, user.data().name, user.data().email, user.data().password);
   }
+
+  static async saveUserRefreshToken(id, refreshToken) { 
+    if(!id || !refreshToken) {
+      throw new Error('Invalid user data');
+    }
+    await db.collection('users').doc(id).update({
+      refreshToken: refreshToken
+    });
+  }
+
+  static async getUserRefreshToken(id) {
+    const doc = await db.collection('users').doc(id).get();
+    if (!doc.exists) {
+      throw new Error('User does not exist');
+    }
+    return doc.data().refreshToken;
+  }
 }
 
 module.exports = User;
