@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const authRoutes = require('./app/routes/userRoutes');
 const aksaraRoutes = require('./app/routes/aksaraRoutes');
-const predictionRoutes = require('./app/routes/predictionRoutes');
+const uploadRoutes = require('./app/routes/uploadRoutes');
 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -26,7 +26,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/aksara', aksaraRoutes);
-app.use('/api/model', predictionRoutes);
+app.use('/api/upload', uploadRoutes);
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Server started on port ${port}`));
