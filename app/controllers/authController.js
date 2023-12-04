@@ -1,6 +1,6 @@
 // Import the functions from user.js
 require("dotenv").config();
-const { createUser, findUserByEmail } = require("../models/user");
+const { createUser, findUserByEmail, saveUserRefreshToken, getUserRefreshToken } = require("../models/user");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 // Use the functions in authController.js
@@ -111,7 +111,59 @@ const login = async (req, res) => {
   }
 };
 
+const generateAccessToken = (user) => {
+  return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "5m" });
+};
+
+const generateRefreshToken = (user) => {
+  return jwt.sign(user, process.env.JWT_REFRESH_SECRET);
+};
+
+/**
+ * @swagger
+ * /refreshToken:
+ *   post:
+ *     summary: Refresh user's token
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successful operation, new access token is returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized, refresh token is null
+ *       403:
+ *         description: Forbidden, refresh token is invalid
+ *       500:
+ *         description: Some server error
+ */
+const refreshToken = async (req, res) => {
+  const refreshToken = req.body.token;
+  if (refreshToken == null) return res.sendStatus(401);
+
+  jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    const accessToken = generateAccessToken({ id: user.id });
+    res.json({ accessToken: accessToken });
+  });
+}
+
 module.exports = {
   register,
   login,
+  refreshToken,
 };
