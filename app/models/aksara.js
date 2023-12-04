@@ -9,7 +9,7 @@ class Aksara {
   }
 
   static async createAksara(name, urlImage) {
-    const id = uuidv4();
+    const id = Date.now() + '-' + uuidv4();
     if (!name || !urlImage) {
       throw new Error("Invalid aksara data");
     }
