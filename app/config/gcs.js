@@ -7,6 +7,6 @@ const storage = new Storage({
   projectId: process.env.PROJECT_ID,
 });
 
-const bucket = storage.bucket('imageresources_model');
+const bucket = storage.bucket(process.env.BUCKET_NAME);
 
 module.exports = { storage, bucket };
