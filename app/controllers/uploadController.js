@@ -3,6 +3,7 @@ const multer = require('multer');
 const fs = require('fs');
 const request = require('request');
 const { storage, bucket } = require('../config/gcs');
+const { validateBufferMIMEType } = require("validate-image-type");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -15,6 +16,15 @@ const uploadImage = async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).send('No file uploaded.');
+      return;
+    }
+
+    // validate the uploaded image type
+    const checkImageType = await validateBufferMIMEType(req.file.buffer,{
+      allowMimeTypes: ["image/png", "image/jpeg"]
+    });
+    if (!checkImageType.ok) {
+      res.status(400).json({ message: 'Image type is not supported. Please only upload .jpeg/.png image' });
       return;
     }
 
@@ -41,11 +51,15 @@ const uploadImage = async (req, res) => {
 
     setTimeout(async () => {
       try {
+        // image folder path in local 
         const destFilename = `./uploads/${blob.name}`;
         const options = {
           destination: destFilename,
         };
+
+        // download the temporary image from bucket to pass the image into flask 
         const downloadFile = await storage.bucket(process.env.BUCKET_NAME).file(blob.name).download(options);
+
         if(downloadFile){
           const formData = {
             image: {
@@ -56,18 +70,19 @@ const uploadImage = async (req, res) => {
               }
             },
           };
+
           request.post({
             url: 'http://127.0.0.1:5000/prediction', 
             formData: formData
           }, (error, response, body) => {
+            // delete temporary download image
+              fs.unlinkSync(destFilename);
+              const parsed = JSON.parse(body);
             if (error) {
-              // console.error(error);
               res.status(500).json({ error: error.toString() });
             } else if (response.statusCode === 200) {
-              const parsed = JSON.parse(body);
               res.status(200).json({data: parsed.data});
             } else if(response.statusCode === 400){
-              console.error(error);
               res.status(400).json({data: JSON.parse(body)});
             }
           });
