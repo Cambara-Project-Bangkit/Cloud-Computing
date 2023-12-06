@@ -60,12 +60,15 @@ const uploadImage = async (req, res) => {
             url: 'http://127.0.0.1:5000/prediction', 
             formData: formData
           }, (error, response, body) => {
-            if (!error && response.statusCode === 200) {
+            if (error) {
+              // console.error(error);
+              res.status(500).json({ error: error.toString() });
+            } else if (response.statusCode === 200) {
               const parsed = JSON.parse(body);
               res.status(200).json({data: parsed.data});
             } else if(response.statusCode === 400){
               console.error(error);
-              res.status(400).json({data: JSON.parse(body)});;
+              res.status(400).json({data: JSON.parse(body)});
             }
           });
         }
