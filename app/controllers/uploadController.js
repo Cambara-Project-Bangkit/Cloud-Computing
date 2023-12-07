@@ -28,8 +28,11 @@ const uploadImage = async (req, res) => {
       return;
     }
 
+    // modified image name that contain spaces with '_'
+    const imageName = req.file.originalname.replace(/ /g, '_');
+
     // Create a new blob in the bucket and upload the file data.
-    const blob = bucket.file(req.file.originalname);
+    const blob = bucket.file(imageName);
     const blobStream = blob.createWriteStream({
         metadata: {
             contentType: req.file.mimetype,
@@ -65,7 +68,7 @@ const uploadImage = async (req, res) => {
             image: {
               value: fs.createReadStream(`./uploads/${blob.name}`), 
               options: {
-                filename: req.file.originalname,
+                filename: blob.name,
                 contentType: req.file.mimetype 
               }
             },
@@ -83,7 +86,7 @@ const uploadImage = async (req, res) => {
             } else if (response.statusCode === 200) {
               res.status(200).json({data: parsed.data});
             } else if(response.statusCode === 400){
-              res.status(400).json({data: JSON.parse(body)});
+              res.status(400).json({data: parsed});
             }
           });
         }
