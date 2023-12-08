@@ -18,6 +18,8 @@ const uploadImage = async (req, res) => {
       res.status(400).send('No file uploaded.');
       return;
     }
+    
+    const {aksara} = req.body;
 
     // validate the uploaded image type
     const checkImageType = await validateBufferMIMEType(req.file.buffer,{
@@ -54,6 +56,12 @@ const uploadImage = async (req, res) => {
 
     setTimeout(async () => {
       try {
+        // create a local folder uploads
+        const folderPath = './uploads'
+        if(!fs.existsSync(folderPath)){
+          fs.mkdirSync(folderPath);
+        }
+        
         // image folder path in local 
         const destFilename = `./uploads/${blob.name}`;
         const options = {
@@ -72,6 +80,7 @@ const uploadImage = async (req, res) => {
                 contentType: req.file.mimetype 
               }
             },
+			      data: aksara,
           };
 
           request.post({
@@ -84,9 +93,16 @@ const uploadImage = async (req, res) => {
             if (error) {
               res.status(500).json({ error: error.toString() });
             } else if (response.statusCode === 200) {
-              res.status(200).json({data: parsed.data});
+              res.status(200).json({
+                error: false,
+                message: parsed.message,
+                data: parsed.data
+              });
             } else if(response.statusCode === 400){
-              res.status(400).json({data: parsed});
+              res.status(400).json({ 
+                error: true,
+                message: parsed.message 
+              });
             }
           });
         }
