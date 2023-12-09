@@ -34,6 +34,10 @@ const validateInputs = (req, res, next) => {
  *       400:
  *         description: Error occurred
  */
-router.post('/', upload.single('image'), uploadImage);    
+router.post('/', 
+  [ upload.single('image'),
+    check('aksara').notEmpty(),
+    validateInputs 
+  ], uploadImage);    
 
 module.exports = router;
