@@ -1,14 +1,24 @@
-require('dotenv').config();
 const multer = require('multer');
 const fs = require('fs');
 const request = require('request');
 const { storage, bucket } = require('../config/gcs');
-const { validateBufferMIMEType } = require('validate-image-type');
+const { validateMIMEType } = require('validate-image-type');
+const path = require('path');
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // no larger than 5mb
 
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    const imageName = file.originalname.replace(/ /g, '_');
+    cb(null, imageName);
+  },
+});
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: diskStorage,
   limits: {
     fileSize: MAX_FILE_SIZE,
   },
@@ -49,98 +59,63 @@ const uploadImage = async (req, res) => {
 
     const { aksara } = req.body;
 
-    // Validate the uploaded image type
-    const checkImageType = await validateBufferMIMEType(req.file.buffer, {
-      allowMimeTypes: ['image/png', 'image/jpeg'],
-    });
+    const imagePath = `./uploads/${path.parse(req.file.filename).base}`;
+    const tempLocalPath = `./uploads/${req.file.filename}`;
 
+    // Validate the uploaded image type
+    const checkImageType = await validateMIMEType(tempLocalPath, {
+      originalFilename: req.file.originalname,
+      allowMimeTypes: ['image/jpeg', 'image/png'],
+    });
+    
     // If the image type is not supported, return an error
     if (!checkImageType.ok) {
       return res.status(400).json({ message: 'Image type is not supported. Please only upload .jpeg/.png images.' });
     }
 
-    // modified image name that contain spaces with '_'
-    const imageName = req.file.originalname.replace(/ /g, '_');
-    const blob = bucket.file(imageName);
-    const blobStream = blob.createWriteStream({
-      metadata: {
-        contentType: req.file.mimetype,
-      },
-    });
+    await bucket.upload(imagePath, { destination: req.file.filename });
+       
+    try {
+      const formData = {
+        image: {
+          value: fs.createReadStream(tempLocalPath),
+          options: {
+            filename: req.file.filename,
+            contentType: req.file.mimetype,
+          },
+        },
+        data: aksara,
+      };
 
-    blobStream.on('error', (err) => {
-      console.log(err);
-      return res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error.' });
-    });
+      // send request post to flask api
+      request.post({
+        url: 'https://cloud-computing-flask-v4v5u72orq-et.a.run.app/prediction',
+        formData: formData,
+      }, (error, response, body) => {
+        // Delete the temporary local image
+        fs.unlinkSync(tempLocalPath);
 
-    blobStream.on('finish', () => {
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    });
-
-    blobStream.end(req.file.buffer);
-
-    setTimeout(async () => {
-      try {
-        const folderPath = './uploads';
-
-        // Create a local folder 'uploads' if it doesn't exist
-        if (!fs.existsSync(folderPath)) {
-          fs.mkdirSync(folderPath);
-        }
-
-        const destFilename = `./uploads/${blob.name}`;
-        const options = {
-          destination: destFilename,
-        };
-
-        // Download the temporary image from the bucket
-        const downloadFile = await storage.bucket(process.env.BUCKET_NAME).file(blob.name).download(options);
-
-        if (downloadFile) {
-          const formData = {
-            image: {
-              value: fs.createReadStream(`./uploads/${blob.name}`),
-              options: {
-                filename: blob.name,
-                contentType: req.file.mimetype,
-              },
-            },
-            data: aksara,
-          };
-
-          // send request post to flask api
-          request.post({
-            url: 'https://cloud-computing-flask-v4v5u72orq-et.a.run.app/prediction',
-            formData: formData,
-          }, (error, response, body) => {
-            // Delete the temporary downloaded image
-            fs.unlinkSync(destFilename);
-
-            if (error) {
-              return res.status(error.statusCode || 500).json({ error: error.message || 'Internal Server Error.' });
-            } else if (response.statusCode === 200) {
-              const parsed = JSON.parse(body);
-              return res.status(200).json({
-                error: false,
-                message: parsed.message,
-                data: parsed.data,
-              });
-            } else if (response.statusCode === 400) {
-              const parsed = JSON.parse(body);
-              return res.status(400).json({
-                error: true,
-                message: parsed.message,
-              });
-            }
+        if (error) {
+          return res.status(error.statusCode || 500).json({ error: error.message || 'Internal Server Error.' });
+        } else if (response.statusCode === 200) {
+          const parsed = JSON.parse(body);
+          return res.status(200).json({
+            error: false,
+            message: parsed.message,
+            data: parsed.data,
+          });
+        } else if (response.statusCode === 400) {
+          const parsed = JSON.parse(body);
+          return res.status(400).json({
+            error: true,
+            message: parsed.message,
           });
         }
-      } catch (error) {
-        console.error(error);
-        return res.status(error.statusCode || 500).json({ error: error.message || 'Internal Server Error.' });
-      }
-    }, 2500);
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ error: error.message || 'Internal Server Error.' });
+    }
   } catch (error) {
-    console.error(error);
     return res.status(error.statusCode || 500).json({ error: error.message || 'Internal Server Error.' });
   }
 };

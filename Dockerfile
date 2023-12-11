@@ -1,10 +1,13 @@
 FROM node:18-slim
 
 # create a working directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # install the dependencies
-COPY package.json package*.json ./
+COPY package*.json ./
+
+# run npm update
+RUN npm update
 
 # run npm install
 RUN npm install 
@@ -13,4 +16,4 @@ RUN npm install
 COPY . .
 
 # execute the npm start command
-CMD [ "npm", "start" ]
+CMD [ "npm", "run", "start" ]
